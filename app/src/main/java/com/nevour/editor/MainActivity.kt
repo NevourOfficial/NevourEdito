@@ -302,7 +302,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
             Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Box(
-                    Modifier.fillMaxWidth().height(190.dp)
+                    Modifier.fillMaxWidth().height(150.dp)
                         .clip(RoundedCornerShape(5.dp)).background(Color(0xFF151922)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -352,7 +352,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
 
             // Multitrack timeline with horizontal scrolling and a clear playhead/readout.
             Column(Modifier.fillMaxWidth().background(Color(0xFF0A0C11)).border(width = 1.dp, color = Line.copy(alpha = .65f))) {
-                Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 7.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 4.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Timeline", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(10.dp))
                     Text(formatTime(positionMs), color = Color(0xFF9DE8D1), fontSize = 10.sp)
@@ -361,7 +361,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     Text("100%", color = Muted, fontSize = 9.sp)
                     IconButton(onClick = { status = "Timeline zoom in selected." }, modifier = Modifier.size(29.dp)) { Glyph(Icons.Rounded.ZoomIn, Muted, 18) }
                 }
-                Row(Modifier.fillMaxWidth().height(28.dp)) {
+                Row(Modifier.fillMaxWidth().height(23.dp)) {
                     Box(Modifier.width(42.dp).fillMaxHeight(), contentAlignment = Alignment.Center) { Text("V1", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold) }
                     Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(rememberScrollState()).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         listOf("00:00", "00:05", "00:10", "00:15", "00:20", "00:25").forEach {
@@ -369,7 +369,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                         }
                     }
                 }
-                Row(Modifier.fillMaxWidth().height(68.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.width(42.dp).fillMaxHeight().border(width = 1.dp, color = Line.copy(alpha = .45f)), contentAlignment = Alignment.Center) { Text("VIDEO", color = Muted, fontSize = 7.sp, fontWeight = FontWeight.Bold) }
                     Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         importedVideos.forEachIndexed { index, uri ->
@@ -396,7 +396,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     }
                 }
                 // Keep the timeline compact; vertically scroll through overlay and auxiliary tracks.
-                Column(Modifier.fillMaxWidth().height(104.dp).verticalScroll(rememberScrollState())) {
+                Column(Modifier.fillMaxWidth().height(68.dp).verticalScroll(rememberScrollState())) {
                     TimelineTrack("OV", "Overlay", "Add overlay", Violet) { selectedTool = "Overlay"; status = "Overlay track selected." }
                     TimelineTrack("OV", "Overlay 2", "+ Add overlay", Blue) { selectedTool = "Overlay"; status = "Overlay track selected." }
                     TimelineTrack("OV", "Overlay 3", "+ Add overlay", Color(0xFF83D6C3)) { selectedTool = "Overlay"; status = "Overlay track selected." }
