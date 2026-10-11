@@ -300,7 +300,6 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
         // The editing workspace scrolls independently on compact phones; transport and tool dock stay reachable.
         CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
         Column(Modifier.weight(1f).fillMaxWidth()) {
-            Spacer(Modifier.weight(1f, fill = true))
             Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Box(
                     Modifier.fillMaxWidth().height(130.dp)
@@ -350,6 +349,9 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     IconButton(onClick = { status = "Preview fit selected." }, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Fullscreen, Muted, 20) }
                 }
             }
+
+            // Flexible space belongs between the preview and timeline, not above the preview.
+            Spacer(Modifier.weight(1f, fill = true))
 
             // Multitrack timeline with horizontal scrolling and a clear playhead/readout.
             Column(Modifier.fillMaxWidth().background(Color(0xFF0A0C11)).border(width = 1.dp, color = Line.copy(alpha = .65f))) {
