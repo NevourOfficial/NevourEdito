@@ -285,7 +285,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                             this.player = player
                             useController = false
                             resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            setShutterBackgroundColor(android.graphics.Color.BLACK
+                            setShutterBackgroundColor(android.graphics.Color.BLACK)
                         }
                     },
                     modifier = Modifier.fillMaxSize()
