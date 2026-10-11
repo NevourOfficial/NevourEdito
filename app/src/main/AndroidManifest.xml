@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
+        android:icon="@drawable/file_00000000f3b48210869b855d754e65c6"
+        android:roundIcon="@drawable/file_00000000f3b48210869b855d754e65c6"
         android:allowBackup="true"
         android:label="Nevour Editor"
         android:supportsRtl="true"

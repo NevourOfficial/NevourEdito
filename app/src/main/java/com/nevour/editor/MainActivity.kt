@@ -3,6 +3,7 @@ package com.nevour.editor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -22,6 +26,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -93,9 +99,12 @@ private fun AppRoot() {
 
 @Composable
 private fun BrandMark() {
-    Box(Modifier.size(43.dp).clip(RoundedCornerShape(13.dp)).background(Lime), contentAlignment = Alignment.Center) {
-        Text("N", color = Bg, fontSize = 26.sp, fontWeight = FontWeight.Black)
-    }
+    Image(
+        painter = painterResource(id = R.drawable.file_00000000f3b48210869b855d754e65c6),
+        contentDescription = "NevourEdito logo",
+        modifier = Modifier.size(43.dp).clip(RoundedCornerShape(13.dp)),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
@@ -211,130 +220,307 @@ private fun FeatureCard(title: String, subtitle: String, icon: ImageVector, tint
 
 @Composable
 private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, onExport: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val player = remember { androidx.media3.exoplayer.ExoPlayer.Builder(context).build() }
+    var importedVideos by remember { mutableStateOf<List<android.net.Uri>>(emptyList()) }
     var playing by remember { mutableStateOf(false) }
-    var tool by remember { mutableStateOf("Trim") }
-    var clip by remember { mutableIntStateOf(0) }
-    var zoom by remember { mutableFloatStateOf(.45f) }
-    var showTools by remember { mutableStateOf(false) }
-    val tools = listOf("Trim", "Audio", "Text", "Crop", "Speed", "Looks")
-    Column(Modifier.fillMaxSize().background(Bg)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Surface).clickable(onClick = onBack), contentAlignment = Alignment.Center) { Glyph(Icons.Rounded.ArrowBack, Ink) }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(project, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("Draft project  •  UI preview", color = Muted, fontSize = 10.sp)
+    var positionMs by remember { mutableLongStateOf(0L) }
+    var durationMs by remember { mutableLongStateOf(0L) }
+    var selectedTool by remember { mutableStateOf("Trim") }
+    var status by remember { mutableStateOf("Add clips to begin editing.") }
+    var trimStart by remember { mutableFloatStateOf(0f) }
+    var trimEnd by remember { mutableFloatStateOf(1f) }
+    var previewHeight by remember { mutableFloatStateOf(190f) }
+    val tools = listOf(
+        Triple("Trim", Icons.Rounded.Crop, "Adjust the selected clip's start and end."),
+        Triple("Split", Icons.Rounded.ContentCut, "Split the clip at the playhead."),
+        Triple("Speed", Icons.Rounded.Speed, "Speed controls are ready for integration."),
+        Triple("Volume", Icons.Rounded.VolumeUp, "Adjust clip audio levels."),
+        Triple("Filters", Icons.Rounded.Tune, "Choose a look for your footage."),
+        Triple("Adjust", Icons.Rounded.Settings, "Fine-tune image adjustments."),
+        Triple("Text", Icons.Rounded.TextFields, "Add a title or caption layer.")
+    )
+    val pickVideos = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            uris.forEach { uri ->
+                runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             }
-            Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Surface).clickable(onClick = onSave), contentAlignment = Alignment.Center) { Glyph(Icons.Rounded.Save, Ink, 19) }
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = onExport, contentPadding = PaddingValues(horizontal = 14.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Bg), modifier = Modifier.height(38.dp)) { Text("Export", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-        }
-        Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp).height(225.dp).clip(RoundedCornerShape(20.dp)).background(Brush.linearGradient(listOf(Color(0xFF304B46), Color(0xFF6B826D), Color(0xFFBE8C65), Color(0xFF353A47))))) {
-            Box(Modifier.fillMaxWidth().height(95.dp).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(Color.White.copy(alpha = .12f), Color.Transparent))))
-            Box(Modifier.size(110.dp).align(Alignment.Center).clip(CircleShape).background(Color(0xFF17201D).copy(alpha = .28f)))
-            Box(Modifier.size(66.dp).align(Alignment.Center).clip(CircleShape).background(Color.Black.copy(alpha = .28f)).border(1.dp, Color.White.copy(alpha = .35f), CircleShape).clickable { playing = !playing }, contentAlignment = Alignment.Center) { Glyph(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, Color.White, 38) }
-            Text("PREVIEW  •  SAMPLE FRAME", color = Color.White.copy(alpha = .82f), fontSize = 9.sp, letterSpacing = 1.sp, modifier = Modifier.align(Alignment.TopStart).padding(13.dp))
-            Text("Replace with your footage", color = Color.White.copy(alpha = .9f), fontSize = 11.sp, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp))
-            Text("16:9", color = Color.White, fontSize = 10.sp, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = .35f)).padding(horizontal = 7.dp, vertical = 4.dp))
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(if (playing) "00:12.8" else "00:12.4", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Text("  /  00:42.0", color = Muted, fontSize = 12.sp)
-            Spacer(Modifier.weight(1f))
-            Text("1080p", color = Muted, fontSize = 10.sp, modifier = Modifier.clip(RoundedCornerShape(7.dp)).background(Surface).padding(horizontal = 8.dp, vertical = 5.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("30 FPS", color = Muted, fontSize = 10.sp, modifier = Modifier.clip(RoundedCornerShape(7.dp)).background(Surface).padding(horizontal = 8.dp, vertical = 5.dp))
-        }
-        Divider(color = Line)
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("TIMELINE", color = Muted, fontSize = 10.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.weight(1f))
-            Text("−", color = Ink, fontSize = 20.sp, modifier = Modifier.clickable { zoom = (zoom - .1f).coerceAtLeast(.2f) }.padding(horizontal = 10.dp))
-            Slider(value = zoom, onValueChange = { zoom = it }, modifier = Modifier.width(90.dp), colors = SliderDefaults.colors(thumbColor = Lime, activeTrackColor = Lime, inactiveTrackColor = Line))
-            Text("+", color = Ink, fontSize = 17.sp, modifier = Modifier.clickable { zoom = (zoom + .1f).coerceAtMost(1f) }.padding(horizontal = 10.dp))
-        }
-        Timeline(clip, { clip = it })
-        if (showTools) {
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                tools.forEach { FilterPill(it, tool == it) { tool = it } }
-            }
-            Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), colors = CardDefaults.cardColors(containerColor = Surface), shape = RoundedCornerShape(14.dp)) {
-                Column(Modifier.padding(14.dp)) {
-                    Text(tool + " controls", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Spacer(Modifier.height(5.dp))
-                    Text(when (tool) {
-                        "Trim" -> "Select a clip to inspect the trim-tool layout. Actual frame editing comes later."
-                        "Audio" -> "Add a music track, adjust volume, and shape fades."
-                        "Text" -> "Add a title or subtitle layer over your video."
-                        "Crop" -> "Choose an aspect ratio and frame your shot."
-                        "Speed" -> "Adjust playback speed for the selected clip."
-                        else -> "Choose a look and adjust its intensity."
-                    }, color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
-                }
-            }
-        }
-        Spacer(Modifier.weight(1f))
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            ToolButton("Trim", Icons.Rounded.ContentCut, tool == "Trim") { tool = "Trim"; showTools = true }
-            ToolButton("Audio", Icons.Rounded.MusicNote, tool == "Audio") { tool = "Audio"; showTools = true }
-            ToolButton("Text", Icons.Rounded.TextFields, tool == "Text") { tool = "Text"; showTools = true }
-            ToolButton("Crop", Icons.Rounded.Crop, tool == "Crop") { tool = "Crop"; showTools = true }
-            ToolButton("More", Icons.Rounded.MoreHoriz, false) { showTools = !showTools }
+            importedVideos = importedVideos + uris
+            uris.forEach { uri -> player.addMediaItem(androidx.media3.common.MediaItem.fromUri(uri)) }
+            player.prepare()
+            status = "Added ${uris.size} clip(s) to the timeline."
         }
     }
-}
-
-@Composable
-private fun Timeline(selected: Int, onSelect: (Int) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 47.dp, end = 3.dp, bottom = 7.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf("00:00", "00:10", "00:20", "00:30", "00:40").forEach { Text(it, color = Muted, fontSize = 9.sp) }
+    DisposableEffect(player) {
+        val listener = object : androidx.media3.common.Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) { playing = isPlaying }
+            override fun onPlaybackStateChanged(playbackState: Int) { durationMs = player.duration.coerceAtLeast(0L) }
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                positionMs = player.currentPosition.coerceAtLeast(0L)
+                durationMs = player.duration.coerceAtLeast(0L)
+            }
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(40.dp).height(54.dp).clip(RoundedCornerShape(9.dp)).background(Surface), contentAlignment = Alignment.Center) { Glyph(Icons.Rounded.VideoLibrary, Muted, 18) }
-            Spacer(Modifier.width(7.dp))
-            Row(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(9.dp)).background(Surface).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                val palettes = listOf(listOf(Color(0xFF416B58), Color(0xFF88A27B)), listOf(Color(0xFF8E6951), Color(0xFFB6A17A)), listOf(Color(0xFF455B7B), Color(0xFF8296A8)), listOf(Color(0xFF6D5273), Color(0xFFB27F83)))
-                repeat(4) { i ->
-                    Box(Modifier.weight(if (i == selected) 1.25f else 1f).fillMaxHeight().clip(RoundedCornerShape(5.dp)).background(Brush.horizontalGradient(palettes[i])).then(if (i == selected) Modifier.border(2.dp, Lime, RoundedCornerShape(5.dp)) else Modifier).clickable { onSelect(i) }, contentAlignment = Alignment.BottomStart) {
-                        Text("CLIP 0" + (i + 1), color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(4.dp))
+        player.addListener(listener)
+        onDispose { player.removeListener(listener); player.release() }
+    }
+    LaunchedEffect(player, playing) {
+        while (playing) {
+            positionMs = player.currentPosition.coerceAtLeast(0L)
+            durationMs = player.duration.coerceAtLeast(0L)
+            kotlinx.coroutines.delay(200)
+        }
+    }
+
+    Column(Modifier.fillMaxSize().background(Bg)) {
+        // Compact, edge-to-edge editor header; existing project/navigation actions remain intact.
+        Row(
+            Modifier.fillMaxWidth().background(Color(0xFF0D0F14)).border(1.dp, Line.copy(alpha = .45f))
+                .padding(horizontal = 7.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) { Glyph(Icons.Rounded.ArrowBack, Ink, 22) }
+            Column(Modifier.weight(1f).padding(start = 3.dp)) {
+                Text(project, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("NEVOUREDITO  ·  PROJECT", color = Muted, fontSize = 8.sp, letterSpacing = 1.sp)
+            }
+            IconButton(onClick = onSave, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Undo, Ink, 19) }
+            IconButton(onClick = { status = "Redo history is not available yet." }, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Redo, Muted, 19) }
+            IconButton(onClick = onSave, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Settings, Muted, 19) }
+            Spacer(Modifier.width(3.dp))
+            Button(
+                onClick = onExport,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier.height(38.dp),
+                shape = RoundedCornerShape(11.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Violet, contentColor = Bg)
+            ) { Text("Export", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+        }
+
+        // The editing workspace scrolls independently on compact phones; transport and tool dock stay reachable.
+        CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
+                Box(
+                    Modifier.fillMaxWidth().height(previewHeight.dp.coerceIn(115.dp, 230.dp))
+                        .clip(RoundedCornerShape(5.dp)).background(Color(0xFF151922)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (importedVideos.isNotEmpty()) {
+                        androidx.compose.ui.viewinterop.AndroidView(
+                            factory = { ctx ->
+                                androidx.media3.ui.PlayerView(ctx).apply {
+                                    this.player = player
+                                    useController = false
+                                    resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                    setShutterBackgroundColor(android.graphics.Color.BLACK)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(Modifier.align(Alignment.TopStart).padding(9.dp).clip(RoundedCornerShape(4.dp)).background(Bg.copy(alpha = .88f)).padding(horizontal = 9.dp, vertical = 5.dp)) {
+                            Text("CLIP  ${(player.currentMediaItemIndex + 1).coerceAtLeast(1)} / ${importedVideos.size}", color = Color(0xFF9DE8D1), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        }
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Glyph(Icons.Rounded.VideoLibrary, Violet, 36)
+                            Spacer(Modifier.height(8.dp))
+                            Text("Your preview", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Import video clips to start editing", color = Muted, fontSize = 11.sp)
+                            Spacer(Modifier.height(10.dp))
+                            OutlinedButton(onClick = { pickVideos.launch(arrayOf("video/*", "image/*")) }, shape = RoundedCornerShape(10.dp)) {
+                                Glyph(Icons.Rounded.Add, Violet, 17)
+                                Spacer(Modifier.width(5.dp))
+                                Text("Add media", color = Ink, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { if (player.isPlaying) player.pause() else if (player.mediaItemCount > 0) player.play() },
+                        modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Raised)
+                    ) { Glyph(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, Ink, 25) }
+                    Spacer(Modifier.width(10.dp))
+                    Text(formatTime(positionMs), color = Ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(" / ${formatTime(durationMs)}", color = Muted, fontSize = 11.sp)
+                    Spacer(Modifier.weight(1f))
+                    Text("16:9", color = Muted, fontSize = 10.sp, modifier = Modifier.border(1.dp, Line, RoundedCornerShape(7.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
+                    IconButton(onClick = { status = "Preview fit selected." }, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Fullscreen, Muted, 20) }
+                }
+            }
+
+            // Drag this handle up to enlarge the timeline, or down to enlarge the preview.
+            Row(
+                Modifier.fillMaxWidth().height(20.dp).background(Color(0xFF0A0C11))
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            previewHeight = (previewHeight + dragAmount.y).coerceIn(115f, 230f)
+                        }
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.width(42.dp).height(4.dp).clip(RoundedCornerShape(8.dp)).background(Muted.copy(alpha = .55f)))
+            }
+
+            // Multitrack timeline with horizontal scrolling and a clear playhead/readout.
+            Column(Modifier.fillMaxWidth().background(Color(0xFF0A0C11)).border(width = 1.dp, color = Line.copy(alpha = .65f))) {
+                Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 7.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Timeline", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(10.dp))
+                    Text(formatTime(positionMs), color = Color(0xFF9DE8D1), fontSize = 10.sp)
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { status = "Timeline zoom out selected." }, modifier = Modifier.size(29.dp)) { Glyph(Icons.Rounded.ZoomOut, Muted, 18) }
+                    Text("100%", color = Muted, fontSize = 9.sp)
+                    IconButton(onClick = { status = "Timeline zoom in selected." }, modifier = Modifier.size(29.dp)) { Glyph(Icons.Rounded.ZoomIn, Muted, 18) }
+                }
+                Row(Modifier.fillMaxWidth().height(28.dp)) {
+                    Box(Modifier.width(42.dp).fillMaxHeight(), contentAlignment = Alignment.Center) { Text("V1", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold) }
+                    Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(rememberScrollState()).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf("00:00", "00:05", "00:10", "00:15", "00:20", "00:25").forEach {
+                            Text(it, color = Muted, fontSize = 9.sp, modifier = Modifier.width(78.dp))
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().height(68.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.width(42.dp).fillMaxHeight().border(width = 1.dp, color = Line.copy(alpha = .45f)), contentAlignment = Alignment.Center) { Text("VIDEO", color = Muted, fontSize = 7.sp, fontWeight = FontWeight.Bold) }
+                    Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        importedVideos.forEachIndexed { index, uri ->
+                            Column(
+                                Modifier.width(132.dp).fillMaxHeight().clip(RoundedCornerShape(6.dp))
+                                    .border(1.dp, if (player.currentMediaItemIndex == index) Violet else Line, RoundedCornerShape(6.dp))
+                                    .background(if (player.currentMediaItemIndex == index) Color(0xFF28213B) else Raised)
+                                    .clickable { player.seekTo(index, 0L); player.prepare() }.padding(7.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Glyph(Icons.Rounded.Movie, if (player.currentMediaItemIndex == index) Violet else Muted, 16)
+                                    Spacer(Modifier.width(5.dp))
+                                    Text("CLIP ${index + 1}", color = Ink, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Text(uri.lastPathSegment?.takeLast(18) ?: "Video ${index + 1}", color = Muted, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                        Box(
+                            Modifier.width(46.dp).fillMaxHeight().clip(RoundedCornerShape(6.dp))
+                                .border(1.dp, Line, RoundedCornerShape(6.dp)).clickable { pickVideos.launch(arrayOf("video/*", "image/*")) },
+                            contentAlignment = Alignment.Center
+                        ) { Glyph(Icons.Rounded.Add, Violet, 23) }
+                    }
+                }
+                TimelineTrack("OV", "Overlay", "Add overlay", Violet) { selectedTool = "Overlay"; status = "Overlay track selected." }
+                TimelineTrack("TX", "Text", "+ Add title", Color(0xFFB8A5FF)) { selectedTool = "Text"; status = "Text track selected." }
+                Row(Modifier.fillMaxWidth().height(37.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.width(42.dp).fillMaxHeight().border(width = 1.dp, color = Line.copy(alpha = .45f)), contentAlignment = Alignment.Center) { Text("AU", color = Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold) }
+                    Row(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 7.dp, vertical = 5.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF24201D)).clickable { selectedTool = "Audio"; status = "Audio track selected." }.padding(horizontal = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Glyph(Icons.Rounded.GraphicEq, Color(0xFFFFC27D), 16)
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (importedVideos.isEmpty()) "Add audio" else "Clip audio waveform", color = Color(0xFFFFC27D), fontSize = 9.sp)
+                    }
+                }
+            }
+
+            // Compact contextual panel avoids consuming the whole lower workspace.
+            Column(Modifier.fillMaxWidth().background(Surface).padding(horizontal = 12.dp, vertical = 5.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(selectedTool.uppercase(), color = Violet, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(tools.firstOrNull { it.first == selectedTool }?.third ?: "Selected tool", color = Muted, fontSize = 10.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (selectedTool == "Trim") formatTime((durationMs * (trimEnd - trimStart)).toLong()) else "", color = Ink, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+                if (selectedTool == "Trim") {
+                    Slider(
+                        value = trimStart,
+                        onValueChange = { value -> trimStart = value.coerceAtMost(trimEnd - .05f).coerceAtLeast(0f) },
+                        valueRange = 0f..0.95f,
+                        modifier = Modifier.fillMaxWidth().height(22.dp),
+                        colors = SliderDefaults.colors(thumbColor = Violet, activeTrackColor = Violet, inactiveTrackColor = Line)
+                    )
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("In  ${(trimStart * 100).toInt()}%", color = Muted, fontSize = 9.sp)
+                        Spacer(Modifier.weight(1f))
+                        Text("Out  ${(trimEnd * 100).toInt()}%", color = Muted, fontSize = 9.sp)
+                        Spacer(Modifier.width(12.dp))
+                        TextButton(onClick = { trimStart = 0f; trimEnd = 1f }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Reset", color = Muted, fontSize = 10.sp) }
+                        TextButton(onClick = { status = "Trim range selected; non-destructive trim integration is pending." }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Apply", color = Violet, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Select clip", "Add media", "Reset").forEach { action ->
+                            OutlinedButton(
+                                onClick = {
+                                    when (action) {
+                                        "Add media" -> pickVideos.launch(arrayOf("video/*", "image/*"))
+                                        "Reset" -> { trimStart = 0f; trimEnd = 1f; status = "Tool controls reset." }
+                                        else -> status = "$selectedTool selected. Choose a clip in the timeline."
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 11.dp, vertical = 3.dp),
+                                modifier = Modifier.height(34.dp),
+                                shape = RoundedCornerShape(9.dp)
+                            ) { Text(action, fontSize = 10.sp, color = Ink) }
+                        }
                     }
                 }
             }
         }
-        Spacer(Modifier.height(7.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(40.dp).height(37.dp).clip(RoundedCornerShape(9.dp)).background(Surface), contentAlignment = Alignment.Center) { Glyph(Icons.Rounded.VolumeUp, Muted, 18) }
-            Spacer(Modifier.width(7.dp))
-            Row(Modifier.weight(1f).height(37.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF1A2627)).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-                repeat(38) { i -> Box(Modifier.weight(1f).height((7 + ((i * 13) % 21)).dp).clip(RoundedCornerShape(2.dp)).background(if (i < 23) Blue.copy(alpha = .75f) else Blue.copy(alpha = .25f))) }
+
+        }
+
+        // Horizontally scrollable tool dock prevents labels clipping on narrow Android devices.
+        Row(
+            Modifier.fillMaxWidth().background(Color(0xFF0D0F14)).border(width = 1.dp, color = Line.copy(alpha = .7f))
+                .horizontalScroll(rememberScrollState()).padding(horizontal = 7.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            tools.forEach { (label, icon, _) ->
+                Column(
+                    Modifier.width(58.dp).clip(RoundedCornerShape(11.dp))
+                        .background(if (selectedTool == label) Color(0xFF28213B) else Color.Transparent)
+                        .clickable {
+                            selectedTool = label
+                            status = "$label tools selected."
+                        }.padding(vertical = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Glyph(icon, if (selectedTool == label) Violet else Muted, 21)
+                    Text(label, color = if (selectedTool == label) Violet else Muted, fontSize = 9.sp, maxLines = 1)
+                }
             }
         }
-        Spacer(Modifier.height(9.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Glyph(Icons.Rounded.Layers, Muted, 16)
-            Spacer(Modifier.width(7.dp))
-            Text("Clip " + (selected + 1) + " selected", color = Ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.weight(1f))
-            Text("Add track  +", color = Lime, fontSize = 11.sp, modifier = Modifier.clickable { onSelect((selected + 1) % 4) }.padding(5.dp))
+        Row(Modifier.fillMaxWidth().background(Color(0xFF101218)).padding(horizontal = 12.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(status, color = Muted, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
 @Composable
-private fun ToolButton(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
-    Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp, vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) LimeDark else Surface), contentAlignment = Alignment.Center) { Glyph(icon, if (selected) Lime else Muted, 20) }
-        Text(label, color = if (selected) Lime else Muted, fontSize = 10.sp)
+private fun TimelineTrack(code: String, label: String, chip: String, tint: Color, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().height(31.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(42.dp).fillMaxHeight().border(width = 1.dp, color = Line.copy(alpha = .45f)), contentAlignment = Alignment.Center) {
+            Text(code, color = Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+        }
+        Row(
+            Modifier.weight(1f).fillMaxHeight().padding(horizontal = 7.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(4.dp)).background(tint.copy(alpha = .13f))
+                .border(width = 1.dp, color = tint.copy(alpha = .65f), shape = RoundedCornerShape(4.dp))
+                .clickable(onClick = onClick).padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Glyph(Icons.Rounded.Add, tint, 14)
+            Spacer(Modifier.width(4.dp))
+            Text(chip, color = tint, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
-@Composable
-private fun FilterPill(label: String, active: Boolean, onClick: () -> Unit) {
-    Box(Modifier.clip(RoundedCornerShape(10.dp)).background(if (active) LimeDark else Surface).border(1.dp, if (active) Lime.copy(alpha = .65f) else Line, RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 13.dp, vertical = 9.dp)) {
-        Text(label, color = if (active) Lime else Ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-    }
+private fun formatTime(milliseconds: Long): String {
+    val totalSeconds = (milliseconds / 1000L).coerceAtLeast(0L)
+    return "%02d:%02d.%d".format(totalSeconds / 60, totalSeconds % 60, (milliseconds % 1000L) / 100L)
 }
 
 @Composable
@@ -532,4 +718,19 @@ private fun ExportDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 @Composable
 private fun Glyph(icon: ImageVector, tint: Color = Ink, size: Int = 20) {
     Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(size.dp))
+}
+
+@Composable
+private fun FilterPill(label: String, active: Boolean, onClick: () -> Unit) {
+    Box(Modifier.clip(RoundedCornerShape(10.dp)).background(if (active) LimeDark else Surface).border(1.dp, if (active) Lime.copy(alpha = .65f) else Line, RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 13.dp, vertical = 9.dp)) {
+        Text(label, color = if (active) Lime else Ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun ToolButton(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp, vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) LimeDark else Surface), contentAlignment = Alignment.Center) { Glyph(icon, if (selected) Lime else Muted, 20) }
+        Text(label, color = if (selected) Lime else Muted, fontSize = 10.sp)
+    }
 }
