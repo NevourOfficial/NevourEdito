@@ -314,24 +314,19 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
             Spacer(Modifier.width(4.dp))
             Text("${formatTime(positionMs)} / ${formatTime(durationMs)}", color = Muted, fontSize = 10.sp)
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = { player.seekTo((player.currentPosition - 5000L).coerceAtLeast(0L)) }, modifier = Modifier.size(36.dp)) { Glyph(Icons.Rounded.Replay5, Ink, 21) }
             IconButton(
                 onClick = { if (player.isPlaying) player.pause() else if (player.mediaItemCount > 0) player.play() },
                 modifier = Modifier.size(38.dp).clip(CircleShape).background(Lime)
             ) { Glyph(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, Bg, 24) }
-            IconButton(onClick = { player.seekTo(player.currentPosition + 5000L) }, modifier = Modifier.size(36.dp)) { Glyph(Icons.Rounded.Forward5, Ink, 21) }
+            IconButton(onClick = { status = "Nothing to undo yet." }, modifier = Modifier.size(36.dp)) { Text("↶", color = Muted, fontSize = 23.sp) }
+            IconButton(onClick = { status = "Nothing to redo yet." }, modifier = Modifier.size(36.dp)) { Text("↷", color = Muted, fontSize = 23.sp) }
         }
 
         Divider(color = Color(0xFF292A2C))
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("TIMELINE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { status = "Undo: no edit operation to reverse yet." }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
-                Text("↶ Undo", color = Muted, fontSize = 11.sp)
-            }
-            TextButton(onClick = { status = "Redo: no edit operation to restore yet." }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
-                Text("↷ Redo", color = Muted, fontSize = 11.sp)
-            }
+            Text("${formatTime(durationMs)} · ${importedVideos.size} clip${if (importedVideos.size == 1) "" else "s"}", color = Muted, fontSize = 10.sp)
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             listOf("00:00", "00:06", "00:12", "00:18", "00:24").forEach {
