@@ -297,9 +297,13 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
             ) { Text("Export", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
         }
 
-        // The editing workspace scrolls independently on compact phones; transport and tool dock stay reachable.
+        // Keep the preview centered in the available workspace; timeline and tool dock remain anchored below.
         CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
         Column(Modifier.weight(1f).fillMaxWidth()) {
+            Box(
+                Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
             Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Box(
                     Modifier.fillMaxWidth().height(130.dp)
@@ -350,9 +354,9 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                 }
             }
 
-            // Flexible space belongs between the preview and timeline, not above the preview.
-            Spacer(Modifier.weight(1f, fill = true))
+            }
 
+            // Timeline stays below the centered preview in the available workspace.
             // Multitrack timeline with horizontal scrolling and a clear playhead/readout.
             Column(Modifier.fillMaxWidth().background(Color(0xFF0A0C11)).border(width = 1.dp, color = Line.copy(alpha = .65f))) {
                 Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 4.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
