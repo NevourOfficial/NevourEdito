@@ -486,6 +486,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
     }
 }
 
+}
+
 @Composable
 private fun TimelineTrack(code: String, label: String, chip: String, tint: Color, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(31.dp), verticalAlignment = Alignment.CenterVertically) {
