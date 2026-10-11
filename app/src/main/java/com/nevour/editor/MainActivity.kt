@@ -607,3 +607,18 @@ private fun ExportDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 private fun Glyph(icon: ImageVector, tint: Color = Ink, size: Int = 20) {
     Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(size.dp))
 }
+
+@Composable
+private fun FilterPill(label: String, active: Boolean, onClick: () -> Unit) {
+    Box(Modifier.clip(RoundedCornerShape(10.dp)).background(if (active) LimeDark else Surface).border(1.dp, if (active) Lime.copy(alpha = .65f) else Line, RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 13.dp, vertical = 9.dp)) {
+        Text(label, color = if (active) Lime else Ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun ToolButton(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp, vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) LimeDark else Surface), contentAlignment = Alignment.Center) { Glyph(icon, if (selected) Lime else Muted, 20) }
+        Text(label, color = if (selected) Lime else Muted, fontSize = 10.sp)
+    }
+}
