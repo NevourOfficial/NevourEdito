@@ -236,7 +236,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                 runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             }
             importedVideos = importedVideos + uris
-            uris.forEach { player.addMediaItem(androidx.media3.common.MediaItem.fromUri(uri)) }
+            uris.forEach { uri -> player.addMediaItem(androidx.media3.common.MediaItem.fromUri(uri)) }
             player.prepare()
             status = "Added ${uris.size} video clip(s) to the timeline."
         }
