@@ -15,8 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -232,7 +230,6 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
     var status by remember { mutableStateOf("Add clips to begin editing.") }
     var trimStart by remember { mutableFloatStateOf(0f) }
     var trimEnd by remember { mutableFloatStateOf(1f) }
-    var previewHeight by remember { mutableFloatStateOf(190f) }
     val tools = listOf(
         Triple("Trim", Icons.Rounded.Crop, "Adjust the selected clip's start and end."),
         Triple("Split", Icons.Rounded.ContentCut, "Split the clip at the playhead."),
@@ -305,7 +302,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
             Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Box(
-                    Modifier.fillMaxWidth().height(previewHeight.dp.coerceIn(115.dp, 230.dp))
+                    Modifier.fillMaxWidth().height(190.dp)
                         .clip(RoundedCornerShape(5.dp)).background(Color(0xFF151922)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -353,21 +350,6 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                 }
             }
 
-            // Drag this handle up to enlarge the timeline, or down to enlarge the preview.
-            Row(
-                Modifier.fillMaxWidth().height(20.dp).background(Color(0xFF0A0C11))
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            previewHeight = (previewHeight + dragAmount.y).coerceIn(115f, 230f)
-                        }
-                    },
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(Modifier.width(42.dp).height(4.dp).clip(RoundedCornerShape(8.dp)).background(Muted.copy(alpha = .55f)))
-            }
-
             // Multitrack timeline with horizontal scrolling and a clear playhead/readout.
             Column(Modifier.fillMaxWidth().background(Color(0xFF0A0C11)).border(width = 1.dp, color = Line.copy(alpha = .65f))) {
                 Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 7.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -413,17 +395,21 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                         ) { Glyph(Icons.Rounded.Add, Violet, 23) }
                     }
                 }
-                TimelineTrack("OV", "Overlay", "Add overlay", Violet) { selectedTool = "Overlay"; status = "Overlay track selected." }
-                TimelineTrack("TX", "Text", "+ Add title", Color(0xFFB8A5FF)) { selectedTool = "Text"; status = "Text track selected." }
-                Row(Modifier.fillMaxWidth().height(37.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.width(42.dp).fillMaxHeight().border(width = 1.dp, color = Line.copy(alpha = .45f)), contentAlignment = Alignment.Center) { Text("AU", color = Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold) }
-                    Row(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 7.dp, vertical = 5.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF24201D)).clickable { selectedTool = "Audio"; status = "Audio track selected." }.padding(horizontal = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Glyph(Icons.Rounded.GraphicEq, Color(0xFFFFC27D), 16)
-                        Spacer(Modifier.width(6.dp))
-                        Text(if (importedVideos.isEmpty()) "Add audio" else "Clip audio waveform", color = Color(0xFFFFC27D), fontSize = 9.sp)
+                // Keep the timeline compact; vertically scroll through overlay and auxiliary tracks.
+                Column(Modifier.fillMaxWidth().height(104.dp).verticalScroll(rememberScrollState())) {
+                    TimelineTrack("OV", "Overlay", "Add overlay", Violet) { selectedTool = "Overlay"; status = "Overlay track selected." }
+                    TimelineTrack("OV", "Overlay 2", "+ Add overlay", Blue) { selectedTool = "Overlay"; status = "Overlay track selected." }
+                    TimelineTrack("OV", "Overlay 3", "+ Add overlay", Color(0xFF83D6C3)) { selectedTool = "Overlay"; status = "Overlay track selected." }
+                    TimelineTrack("TX", "Text", "+ Add title", Color(0xFFB8A5FF)) { selectedTool = "Text"; status = "Text track selected." }
+                    Row(Modifier.fillMaxWidth().height(37.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.width(42.dp).fillMaxHeight().border(width = 1.dp, color = Line.copy(alpha = .45f)), contentAlignment = Alignment.Center) { Text("AU", color = Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold) }
+                        Row(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 7.dp, vertical = 5.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF24201D)).clickable { selectedTool = "Audio"; status = "Audio track selected." }.padding(horizontal = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Glyph(Icons.Rounded.GraphicEq, Color(0xFFFFC27D), 16)
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (importedVideos.isEmpty()) "Add audio" else "Clip audio waveform", color = Color(0xFFFFC27D), fontSize = 9.sp)
+                        }
                     }
                 }
-            }
 
             // Compact contextual panel avoids consuming the whole lower workspace.
             Column(Modifier.fillMaxWidth().background(Surface).padding(horizontal = 12.dp, vertical = 5.dp)) {
