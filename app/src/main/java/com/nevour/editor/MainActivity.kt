@@ -445,7 +445,13 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                             else {
                                 cropRunning = true
                                 status = "Rendering destructive crop… keep the app open."
-                                val output = java.io.File(context.cacheDir, "crop_${System.currentTimeMillis()}.mp4")
+                                val mimeType = context.contentResolver.getType(source).orEmpty()
+                                if (!mimeType.startsWith("video/")) {
+                                    status = "Crop currently supports video clips only."
+                                    return@TextButton
+                                }
+                                // Keep rendered replacement in app-private files, not the evictable cache.
+                                val output = java.io.File(context.filesDir, "crop_${System.currentTimeMillis()}.mp4")
                                 val edge = 1f - cropAmount * 2f
                                 val edited = androidx.media3.transformer.EditedMediaItem.Builder(
                                     androidx.media3.common.MediaItem.fromUri(source)
