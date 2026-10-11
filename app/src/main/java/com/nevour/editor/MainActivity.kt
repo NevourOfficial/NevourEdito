@@ -299,10 +299,11 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
 
         // The editing workspace scrolls independently on compact phones; transport and tool dock stay reachable.
         CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+        Column(Modifier.weight(1f).fillMaxWidth()) {
+            Spacer(Modifier.weight(1f, fill = true))
             Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Box(
-                    Modifier.fillMaxWidth().height(150.dp)
+                    Modifier.fillMaxWidth().height(130.dp)
                         .clip(RoundedCornerShape(5.dp)).background(Color(0xFF151922)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -361,7 +362,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     Text("100%", color = Muted, fontSize = 9.sp)
                     IconButton(onClick = { status = "Timeline zoom in selected." }, modifier = Modifier.size(29.dp)) { Glyph(Icons.Rounded.ZoomIn, Muted, 18) }
                 }
-                Row(Modifier.fillMaxWidth().height(23.dp)) {
+                Row(Modifier.fillMaxWidth().height(21.dp)) {
                     Box(Modifier.width(42.dp).fillMaxHeight(), contentAlignment = Alignment.Center) { Text("V1", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold) }
                     Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(rememberScrollState()).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         listOf("00:00", "00:05", "00:10", "00:15", "00:20", "00:25").forEach {
@@ -369,7 +370,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                         }
                     }
                 }
-                Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.width(42.dp).fillMaxHeight().border(width = 1.dp, color = Line.copy(alpha = .45f)), contentAlignment = Alignment.Center) { Text("VIDEO", color = Muted, fontSize = 7.sp, fontWeight = FontWeight.Bold) }
                     Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         importedVideos.forEachIndexed { index, uri ->
@@ -396,7 +397,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     }
                 }
                 // Keep the timeline compact; vertically scroll through overlay and auxiliary tracks.
-                Column(Modifier.fillMaxWidth().height(68.dp).verticalScroll(rememberScrollState())) {
+                Column(Modifier.fillMaxWidth().height(55.dp).verticalScroll(rememberScrollState())) {
                     TimelineTrack("OV", "Overlay", "Add overlay", Violet) { selectedTool = "Overlay"; status = "Overlay track selected." }
                     TimelineTrack("OV", "Overlay 2", "+ Add overlay", Blue) { selectedTool = "Overlay"; status = "Overlay track selected." }
                     TimelineTrack("OV", "Overlay 3", "+ Add overlay", Color(0xFF83D6C3)) { selectedTool = "Overlay"; status = "Overlay track selected." }
@@ -480,9 +481,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().background(Color(0xFF101218)).padding(horizontal = 12.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(status, color = Muted, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
+
     }
 }
 
