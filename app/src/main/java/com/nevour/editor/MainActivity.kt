@@ -306,8 +306,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
             ) {
             Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Box(
-                    Modifier.fillMaxWidth().height(130.dp)
-                        .clip(RoundedCornerShape(5.dp)).background(Color(0xFF151922)),
+                    Modifier.fillMaxWidth().height(210.dp)
+                        .clip(RoundedCornerShape(9.dp)).background(Color(0xFF151922)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (importedVideos.isNotEmpty()) {
