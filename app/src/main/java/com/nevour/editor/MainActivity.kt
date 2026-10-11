@@ -217,7 +217,7 @@ private fun FeatureCard(title: String, subtitle: String, icon: ImageVector, tint
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.media3.common.util.UnstableApi::class)
 @Composable
 private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, onExport: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -234,7 +234,6 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
     var cropRunning by remember { mutableStateOf(false) }
     val tools = listOf(
         Triple("Trim", Icons.Rounded.ContentCut, "Trim the selected clip."),
-        Triple("Crop", Icons.Rounded.Crop, "Destructively crop the selected clip.")
         Triple("Crop", Icons.Rounded.CropFree, "Permanently crop the selected clip and replace it with the cropped render."),
         Triple("Split", Icons.Rounded.ContentCut, "Split the clip at the playhead."),
         Triple("Speed", Icons.Rounded.Speed, "Speed controls are ready for integration."),
@@ -464,7 +463,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                                             exportResult: androidx.media3.transformer.ExportResult) {
                                             val croppedUri = android.net.Uri.fromFile(output)
                                             importedVideos = importedVideos.toMutableList().also { it[index] = croppedUri }
-                                            player.setMediaItem(androidx.media3.common.MediaItem.fromUri(croppedUri), index, 0L)
+                                            player.replaceMediaItem(index, androidx.media3.common.MediaItem.fromUri(croppedUri))
                                             player.prepare()
                                             cropRunning = false
                                             cropAmount = 0f
