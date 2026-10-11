@@ -217,6 +217,12 @@ private fun FeatureCard(title: String, subtitle: String, icon: ImageVector, tint
     }
 }
 
+private data class EditSnapshot(
+    val videos: List<android.net.Uri>,
+    val trimStart: Float,
+    val trimEnd: Float
+)
+
 @OptIn(ExperimentalFoundationApi::class, androidx.media3.common.util.UnstableApi::class)
 @Composable
 private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, onExport: () -> Unit) {
@@ -232,6 +238,39 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
     var trimEnd by remember { mutableFloatStateOf(1f) }
     var cropAmount by remember { mutableFloatStateOf(0f) }
     var cropRunning by remember { mutableStateOf(false) }
+    val undoHistory = remember { mutableStateListOf<EditSnapshot>() }
+    val redoHistory = remember { mutableStateListOf<EditSnapshot>() }
+    fun snapshot() = EditSnapshot(importedVideos.toList(), trimStart, trimEnd)
+    fun recordEdit() {
+        undoHistory.add(snapshot())
+        if (undoHistory.size > 100) undoHistory.removeAt(0)
+        redoHistory.clear()
+    }
+    fun restoreSnapshot(state: EditSnapshot) {
+        importedVideos = state.videos
+        trimStart = state.trimStart
+        trimEnd = state.trimEnd
+        val items = state.videos.map { androidx.media3.common.MediaItem.fromUri(it) }
+        val index = player.currentMediaItemIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
+        player.setMediaItems(items, index, 0L)
+        if (items.isNotEmpty()) player.prepare() else player.stop()
+        positionMs = 0L
+        durationMs = 0L
+    }
+    fun undoEdit() {
+        if (undoHistory.isEmpty() || cropRunning) return
+        redoHistory.add(snapshot())
+        val previous = undoHistory.removeAt(undoHistory.lastIndex)
+        restoreSnapshot(previous)
+        status = "Undo complete."
+    }
+    fun redoEdit() {
+        if (redoHistory.isEmpty() || cropRunning) return
+        undoHistory.add(snapshot())
+        val next = redoHistory.removeAt(redoHistory.lastIndex)
+        restoreSnapshot(next)
+        status = "Redo complete."
+    }
     val tools = listOf(
         Triple("Trim", Icons.Rounded.ContentCut, "Trim the selected clip."),
         Triple("Crop", Icons.Rounded.CropFree, "Permanently crop the selected clip and replace it with the cropped render."),
@@ -249,6 +288,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
             uris.forEach { uri ->
                 runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             }
+            recordEdit()
             importedVideos = importedVideos + uris
             uris.forEach { uri -> player.addMediaItem(androidx.media3.common.MediaItem.fromUri(uri)) }
             player.prepare()
@@ -287,8 +327,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                 Text(project, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("NEVOUREDITO  ·  PROJECT", color = Muted, fontSize = 8.sp, letterSpacing = 1.sp)
             }
-            IconButton(onClick = onSave, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Undo, Ink, 19) }
-            IconButton(onClick = { status = "Redo history is not available yet." }, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Redo, Muted, 19) }
+            IconButton(onClick = { undoEdit() }, enabled = undoHistory.isNotEmpty() && !cropRunning, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Undo, if (undoHistory.isNotEmpty() && !cropRunning) Ink else Muted, 19) }
+            IconButton(onClick = { redoEdit() }, enabled = redoHistory.isNotEmpty() && !cropRunning, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Redo, if (redoHistory.isNotEmpty() && !cropRunning) Ink else Muted, 19) }
             IconButton(onClick = onSave, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Settings, Muted, 19) }
             Spacer(Modifier.width(3.dp))
             Button(
@@ -462,6 +502,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                                         override fun onCompleted(composition: androidx.media3.transformer.Composition,
                                             exportResult: androidx.media3.transformer.ExportResult) {
                                             val croppedUri = android.net.Uri.fromFile(output)
+                                            // Record the pre-crop project state so Undo restores the original clip.
+                                            recordEdit()
                                             importedVideos = importedVideos.toMutableList().also { it[index] = croppedUri }
                                             player.replaceMediaItem(index, androidx.media3.common.MediaItem.fromUri(croppedUri))
                                             player.prepare()
@@ -500,8 +542,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                         Spacer(Modifier.weight(1f))
                         Text("Out  ${(trimEnd * 100).toInt()}%", color = Muted, fontSize = 9.sp)
                         Spacer(Modifier.width(12.dp))
-                        TextButton(onClick = { trimStart = 0f; trimEnd = 1f }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Reset", color = Muted, fontSize = 10.sp) }
-                        TextButton(onClick = { status = "Trim range selected; non-destructive trim integration is pending." }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Apply", color = Violet, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                        TextButton(onClick = { if (trimStart != 0f || trimEnd != 1f) { recordEdit(); trimStart = 0f; trimEnd = 1f; status = "Trim range reset." } }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Reset", color = Muted, fontSize = 10.sp) }
+                        TextButton(onClick = { status = "Trim range selected; applying the trim to rendered media is not implemented yet." }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Apply", color = Violet, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                     }
                 } else {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -510,7 +552,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                                 onClick = {
                                     when (action) {
                                         "Add media" -> pickVideos.launch(arrayOf("video/*", "image/*"))
-                                        "Reset" -> { trimStart = 0f; trimEnd = 1f; status = "Tool controls reset." }
+                                        "Reset" -> { if (trimStart != 0f || trimEnd != 1f) { recordEdit(); trimStart = 0f; trimEnd = 1f }; status = "Tool controls reset." }
                                         else -> status = "$selectedTool selected. Choose a clip in the timeline."
                                     }
                                 },
