@@ -233,7 +233,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
     var cropAmount by remember { mutableFloatStateOf(0f) }
     var cropRunning by remember { mutableStateOf(false) }
     val tools = listOf(
-        Triple("Trim", Icons.Rounded.Crop, "Adjust the selected clip's start and end."),
+        Triple("Trim", Icons.Rounded.ContentCut, "Trim the selected clip."),
+        Triple("Crop", Icons.Rounded.Crop, "Destructively crop the selected clip.")
         Triple("Crop", Icons.Rounded.CropFree, "Permanently crop the selected clip and replace it with the cropped render."),
         Triple("Split", Icons.Rounded.ContentCut, "Split the clip at the playhead."),
         Triple("Speed", Icons.Rounded.Speed, "Speed controls are ready for integration."),
