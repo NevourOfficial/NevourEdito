@@ -230,8 +230,11 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
     var status by remember { mutableStateOf("Add clips to begin editing.") }
     var trimStart by remember { mutableFloatStateOf(0f) }
     var trimEnd by remember { mutableFloatStateOf(1f) }
+    var cropAmount by remember { mutableFloatStateOf(0f) }
+    var cropRunning by remember { mutableStateOf(false) }
     val tools = listOf(
         Triple("Trim", Icons.Rounded.Crop, "Adjust the selected clip's start and end."),
+        Triple("Crop", Icons.Rounded.CropFree, "Permanently crop the selected clip and replace it with the cropped render."),
         Triple("Split", Icons.Rounded.ContentCut, "Split the clip at the playhead."),
         Triple("Speed", Icons.Rounded.Speed, "Speed controls are ready for integration."),
         Triple("Volume", Icons.Rounded.VolumeUp, "Adjust clip audio levels."),
@@ -426,7 +429,59 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     Text(tools.firstOrNull { it.first == selectedTool }?.third ?: "Selected tool", color = Muted, fontSize = 10.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(if (selectedTool == "Trim") formatTime((durationMs * (trimEnd - trimStart)).toLong()) else "", color = Ink, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
-                if (selectedTool == "Trim") {
+                if (selectedTool == "Crop") {
+                    Text("Crop equally from all four edges", color = Muted, fontSize = 10.sp)
+                    Slider(value = cropAmount, onValueChange = { cropAmount = it }, valueRange = 0f..0.35f,
+                        modifier = Modifier.fillMaxWidth().height(24.dp),
+                        colors = SliderDefaults.colors(thumbColor = Violet, activeTrackColor = Violet, inactiveTrackColor = Line))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${(cropAmount * 100).toInt()}% per edge", color = Muted, fontSize = 9.sp)
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = { cropAmount = 0f }, enabled = !cropRunning) { Text("Reset", color = Muted, fontSize = 10.sp) }
+                        TextButton(enabled = importedVideos.isNotEmpty() && !cropRunning && cropAmount > 0f, onClick = {
+                            val index = player.currentMediaItemIndex
+                            val source = importedVideos.getOrNull(index)
+                            if (source == null) status = "Select a video clip before cropping."
+                            else {
+                                cropRunning = true
+                                status = "Rendering destructive crop… keep the app open."
+                                val output = java.io.File(context.cacheDir, "crop_${System.currentTimeMillis()}.mp4")
+                                val edge = 1f - cropAmount * 2f
+                                val edited = androidx.media3.transformer.EditedMediaItem.Builder(
+                                    androidx.media3.common.MediaItem.fromUri(source)
+                                ).setEffects(androidx.media3.transformer.Effects(emptyList(),
+                                    listOf(androidx.media3.effect.Crop(-edge, edge, -edge, edge)))).build()
+                                val transformer = androidx.media3.transformer.Transformer.Builder(context)
+                                    .addListener(object : androidx.media3.transformer.Transformer.Listener {
+                                        override fun onCompleted(composition: androidx.media3.transformer.Composition,
+                                            exportResult: androidx.media3.transformer.ExportResult) {
+                                            val croppedUri = android.net.Uri.fromFile(output)
+                                            importedVideos = importedVideos.toMutableList().also { it[index] = croppedUri }
+                                            player.setMediaItem(androidx.media3.common.MediaItem.fromUri(croppedUri), index, 0L)
+                                            player.prepare()
+                                            cropRunning = false
+                                            cropAmount = 0f
+                                            status = "Crop rendered and replaced the selected clip."
+                                        }
+                                        override fun onError(composition: androidx.media3.transformer.Composition,
+                                            exportResult: androidx.media3.transformer.ExportResult?,
+                                            exportException: androidx.media3.transformer.ExportException) {
+                                            cropRunning = false
+                                            status = "Crop failed: ${exportException.errorCodeName}"
+                                            output.delete()
+                                        }
+                                    }).build()
+                                runCatching { transformer.start(edited, output.absolutePath) }.onFailure {
+                                    cropRunning = false
+                                    status = "Could not start crop: ${it.message ?: "unknown error"}"
+                                    output.delete()
+                                }
+                            }
+                        }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) {
+                            Text(if (cropRunning) "Rendering…" else "Apply crop", color = Violet, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else if (selectedTool == "Trim") {
                     Slider(
                         value = trimStart,
                         onValueChange = { value -> trimStart = value.coerceAtMost(trimEnd - .05f).coerceAtLeast(0f) },
