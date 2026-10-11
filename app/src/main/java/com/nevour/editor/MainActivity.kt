@@ -13,6 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -227,6 +230,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
     var status by remember { mutableStateOf("Add clips to begin editing.") }
     var trimStart by remember { mutableFloatStateOf(0f) }
     var trimEnd by remember { mutableFloatStateOf(1f) }
+    var previewHeight by remember { mutableFloatStateOf(190f) }
     val tools = listOf(
         Triple("Trim", Icons.Rounded.Crop, "Adjust the selected clip's start and end."),
         Triple("Split", Icons.Rounded.ContentCut, "Split the clip at the playhead."),
@@ -295,11 +299,12 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
         }
 
         // The editing workspace scrolls independently on compact phones; transport and tool dock stay reachable.
+        CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(Modifier.fillMaxWidth().background(Color(0xFF050609)).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Box(
-                    Modifier.fillMaxWidth().heightIn(min = 145.dp, max = 230.dp)
-                        .aspectRatio(1.62f).clip(RoundedCornerShape(5.dp)).background(Color(0xFF151922)),
+                    Modifier.fillMaxWidth().height(previewHeight.dp.coerceIn(115.dp, 230.dp))
+                        .clip(RoundedCornerShape(5.dp)).background(Color(0xFF151922)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (importedVideos.isNotEmpty()) {
@@ -344,6 +349,21 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     Text("16:9", color = Muted, fontSize = 10.sp, modifier = Modifier.border(1.dp, Line, RoundedCornerShape(7.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
                     IconButton(onClick = { status = "Preview fit selected." }, modifier = Modifier.size(34.dp)) { Glyph(Icons.Rounded.Fullscreen, Muted, 20) }
                 }
+            }
+
+            // Drag this handle up to enlarge the timeline, or down to enlarge the preview.
+            Row(
+                Modifier.fillMaxWidth().height(20.dp).background(Color(0xFF0A0C11))
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            previewHeight = (previewHeight + dragAmount.y).coerceIn(115f, 230f)
+                        }
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.width(42.dp).height(4.dp).clip(RoundedCornerShape(8.dp)).background(Muted.copy(alpha = .55f)))
             }
 
             // Multitrack timeline with horizontal scrolling and a clear playhead/readout.
@@ -446,6 +466,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                     }
                 }
             }
+        }
+
         }
 
         // Horizontally scrollable tool dock prevents labels clipping on narrow Android devices.
