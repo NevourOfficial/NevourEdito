@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -218,6 +219,7 @@ private fun FeatureCard(title: String, subtitle: String, icon: ImageVector, tint
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, onExport: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
