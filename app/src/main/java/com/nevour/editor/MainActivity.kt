@@ -3,6 +3,7 @@ package com.nevour.editor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -93,9 +96,12 @@ private fun AppRoot() {
 
 @Composable
 private fun BrandMark() {
-    Box(Modifier.size(43.dp).clip(RoundedCornerShape(13.dp)).background(Lime), contentAlignment = Alignment.Center) {
-        Text("N", color = Bg, fontSize = 26.sp, fontWeight = FontWeight.Black)
-    }
+    Image(
+        painter = painterResource(id = R.drawable.file_00000000f3b48210869b855d754e65c6),
+        contentDescription = "NevourEdito logo",
+        modifier = Modifier.size(43.dp).clip(RoundedCornerShape(13.dp)),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
