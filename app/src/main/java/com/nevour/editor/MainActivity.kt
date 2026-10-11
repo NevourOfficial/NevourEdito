@@ -358,7 +358,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
 
             // Timeline stays below the centered preview in the available workspace.
             // Multitrack timeline with horizontal scrolling and a clear playhead/readout.
-            Column(Modifier.fillMaxWidth().background(Color(0xFF0A0C11)).border(width = 1.dp, color = Line.copy(alpha = .65f))) {
+            Column(Modifier.fillMaxWidth().offset(y = (-22).dp).background(Color(0xFF0A0C11)).border(width = 1.dp, color = Line.copy(alpha = .65f))) {
                 Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 4.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Timeline", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(10.dp))
