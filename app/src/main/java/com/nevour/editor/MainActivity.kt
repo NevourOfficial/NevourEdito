@@ -424,7 +424,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
             }
 
             // Compact contextual panel avoids consuming the whole lower workspace.
-            Column(Modifier.fillMaxWidth().background(Surface).padding(horizontal = 14.dp, vertical = 9.dp)) {
+            Column(Modifier.fillMaxWidth().background(Surface).padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(selectedTool.uppercase(), color = Violet, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Spacer(Modifier.width(8.dp))
@@ -436,7 +436,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                         value = trimStart,
                         onValueChange = { value -> trimStart = value.coerceAtMost(trimEnd - .05f).coerceAtLeast(0f) },
                         valueRange = 0f..0.95f,
-                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        modifier = Modifier.fillMaxWidth().height(22.dp),
                         colors = SliderDefaults.colors(thumbColor = Violet, activeTrackColor = Violet, inactiveTrackColor = Line)
                     )
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -444,8 +444,8 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                         Spacer(Modifier.weight(1f))
                         Text("Out  ${(trimEnd * 100).toInt()}%", color = Muted, fontSize = 9.sp)
                         Spacer(Modifier.width(12.dp))
-                        TextButton(onClick = { trimStart = 0f; trimEnd = 1f }) { Text("Reset", color = Muted, fontSize = 10.sp) }
-                        TextButton(onClick = { status = "Trim range selected; non-destructive trim integration is pending." }) { Text("Apply", color = Violet, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                        TextButton(onClick = { trimStart = 0f; trimEnd = 1f }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Reset", color = Muted, fontSize = 10.sp) }
+                        TextButton(onClick = { status = "Trim range selected; non-destructive trim integration is pending." }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 0.dp)) { Text("Apply", color = Violet, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                     }
                 } else {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
