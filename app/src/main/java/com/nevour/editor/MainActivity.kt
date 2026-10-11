@@ -512,7 +512,7 @@ private fun EditorPage(project: String, onBack: () -> Unit, onSave: () -> Unit, 
                                             status = "Crop rendered and replaced the selected clip."
                                         }
                                         override fun onError(composition: androidx.media3.transformer.Composition,
-                                            exportResult: androidx.media3.transformer.ExportResult?,
+                                            exportResult: androidx.media3.transformer.ExportResult,
                                             exportException: androidx.media3.transformer.ExportException) {
                                             cropRunning = false
                                             status = "Crop failed: ${exportException.errorCodeName}"
